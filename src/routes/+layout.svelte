@@ -2,8 +2,10 @@
 	import '../app.css';
 	import Header from '$lib/components/Header.svelte';
 	import { onMount } from 'svelte';
+	import type { PageData } from './$types';
 
-	let user = $props();
+	export let data: PageData;
+	$: user = data.user;
 
 	onMount(() => {
 		const savedTheme = localStorage.getItem('theme');

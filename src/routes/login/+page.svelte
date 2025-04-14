@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -25,6 +26,8 @@
 					console.error('Form error:', result);
 				} else if (result.type === 'success') {
 					window.location.href = '/';
+				} else if (result.type === 'redirect') {
+					goto(result.location);
 				}
 			};
 		}}
@@ -77,5 +80,10 @@
 				Sign In
 			{/if}
 		</button>
+		<div class="mt-4 text-center">
+			<p class="text-text-secondary text-sm">
+				Don't have an accoutn? <a href="/register" class="text-blue hover:underline">Register</a>
+			</p>
+		</div>
 	</form>
 </div>

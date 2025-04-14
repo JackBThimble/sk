@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { clickOutside } from '$lib/actions/clickOutside';
+	import { enhance } from '$app/forms';
 
 	let user = $props();
 
@@ -9,12 +10,8 @@
 		isOpen = !isOpen;
 	}
 
-	function handleLogout() {
-		const form = document.createElement('form');
-		form.method = 'POST';
-		form.action = '/logout';
-		document.body.appendChild(form);
-		form.submit();
+	function closeMenu() {
+		isOpen = false;
 	}
 </script>
 
@@ -34,16 +31,37 @@
 			<div class="border-border border-b px-4 py-2">
 				<p class="text-text-primary text-sm font-medium">{user?.username}</p>
 			</div>
-			<a href="/profile" class="text-text-primary hover:bg-tertiary block px-4 py-2 text-sm">
+			<a
+				href="/profile"
+				class="text-text-primary hover:bg-tertiary block px-4 py-2 text-sm"
+				onclick={closeMenu}
+			>
 				Profile
 			</a>
-			<a href="/scores" class="text-text-primary hover:bg-bg-tertiary block px-4 py-2 text-sm"
-				>My Scores</a
+			<a
+				href="/scores"
+				class="text-text-primary hover:bg-bg-tertiary block px-4 py-2 text-sm"
+				onclick={closeMenu}
 			>
-			<button
-				onclick={handleLogout}
-				class="text-red hover:bg-bg-tertiary w-full px-4 py-2 text-left text-sm">Sign Out</button
+				My Score
+			</a>
+			<form
+				method="post"
+				action="/logout"
+				use:enhance={() => {
+					closeMenu();
+					return ({ update }) => {
+						update();
+					};
+				}}
 			>
+				<button
+					type="submit"
+					class="text-red hover:bg-bg-tertiary w-full px-4 py-2 text-left text-sm"
+				>
+					Sign Out
+				</button>
+			</form>
 		</div>
 	{/if}
 </div>
