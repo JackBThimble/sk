@@ -1,3 +1,97 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
+
+@theme {
+	--color-bg-primary: #f2ece6;
+	--color-bg-secondary: #e9e4dc;
+	--color-bg-tertiary: #e1ddd1;
+	--color-border: #b8ae99;
+
+	--color-text-primary: #545454;
+	--color-text-secondary: #43436c;
+
+	--color-blue: #7e9cd8;
+	--color-light-blue: #78b4ca;
+	--color-teal: #6a9589;
+	--color-green: #98bb6c;
+	--color-yellow: #e6c384;
+	--color-orange: #dca561;
+	--color-deep-orange: #ff9e3b;
+	--color-red: #e46876;
+	--color-deep-red: #c34043;
+	--color-pink: #d27e99;
+	--color-purple: #957fb8;
+
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+	--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+}
+
+.dark {
+	--color-bg-primary: #1f1f28;
+	--color-bg-secondary: #2a2a37;
+	--color-bg-tertiary: #363646;
+	--color-border: #54546d;
+
+	--color-text-primary: #dcd7ba;
+	--color-text-secondary: #c8c093;
+
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+	--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+	--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+html {
+	scroll-behavior: smooth;
+}
+
+body {
+	@apply bg-bg-primary text-text-primary;
+	transition:
+		background-color 0.3s ease,
+		color 0.3s ease;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	@apply font-medium tracking-tight;
+}
+
+@layer components {
+	.btn-primary {
+		@apply bg-blue hover:bg-light-blue transform rounded-md px-4 py-2 text-white shadow-sm transition-colors duration-300 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0;
+	}
+	.btn-secondary {
+		@apply bg-bg-tertiary text-text-primary border-border hover:bg-bg-secondary transform rounded-md border px-4 py-2 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0;
+	}
+	.card {
+		@apply bg-bg-secondary border-border rounded-lg border p-6 shadow-md transition-all duration-300 hover:shadow-lg;
+	}
+	.animated-link {
+		@apply relative inline-block;
+	}
+	.animated-link::after {
+		@apply bg-blue absolute bottom-0 left-0 h-0.5 w-full origin-left scale-x-0 transform rounded-full transition-transform duration-300 content-[''];
+	}
+	.animated-link:hover::after {
+		@apply scale-x-100;
+	}
+}
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+::-webkit-scrollbar-track {
+	background: var(--color-bg-tertiary);
+}
+::-webkit-scrollbar-thumb {
+	background: var(--color-border);
+	border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: var(--color-blue);
+}
