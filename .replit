@@ -1,0 +1,16 @@
+modules = ["nodejs-20", "web", "nodejs-23"]
+run = "npm install && npm run dev"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "npm install && npm run dev"]
+
+[[ports]]
+localPort = 3000
+externalPort = 80
+exposeLocalhost = true
+
+[[ports]]
+localPort = 5173
