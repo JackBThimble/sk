@@ -61,8 +61,7 @@ let passwordValid = $state(true);
 	{/if}
 	
 	<form
-		method="POST"
-		action="?/default"
+		method="post"
 		use:enhance={() => {
 			isLoading = true;
 			return async ({ result, update }) => {

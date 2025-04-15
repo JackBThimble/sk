@@ -13,7 +13,7 @@ export const load: PageServerLoad = async (event) => {
 	return {};
 };
 
-export const actions: Actions = {
+export const actions = {
 	default: async (event) => {
 		const formData = await event.request.formData();
 
