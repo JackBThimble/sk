@@ -5,6 +5,7 @@ import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
 import { userSchema } from '$lib/server/zod-schemas';
+import { z } from 'zod';
 
 export const load: PageServerLoad = async (event) => {
 	if (event.locals.user) {
@@ -13,7 +14,7 @@ export const load: PageServerLoad = async (event) => {
 	return {};
 };
 
-export const actions = {
+export const actions: Actions = {
 	default: async (event) => {
 		const formData = await event.request.formData();
 

@@ -81,8 +81,8 @@ let passwordValid = $state(true);
 					id={fieldIds.username}
 					name="username"
 					bind:value={username}
-					on:input={validateUsername}
-					on:blur={validateUsername}
+					oninput={validateUsername}
+					onblur={validateUsername}
 					class="bg-bg-primary border-border pr-10 focus w-full rounded-md border p-2.5 
 						{(!usernameValid || form?.errors?.username) ? 'border-red focus:border-red focus:ring-red' : 'focus:border-blue focus:ring-blue'}"
 					aria-invalid={!usernameValid || !!form?.errors?.username ? "true" : "false"}
@@ -119,8 +119,8 @@ let passwordValid = $state(true);
 					id={fieldIds.password}
 					name="password"
 					bind:value={password}
-					on:input={validatePassword}
-					on:blur={validatePassword}
+					oninput={validatePassword}
+					onblur={validatePassword}
 					class="bg-bg-primary border-border pr-10 w-full rounded-md border p-2.5 
 						{(!passwordValid || form?.errors?.password) ? 'border-red focus:border-red focus:ring-red' : 'focus:border-blue focus:ring-blue'}"
 					aria-invalid={!passwordValid || !!form?.errors?.password ? "true" : "false"}
@@ -157,8 +157,8 @@ let passwordValid = $state(true);
 					id={fieldIds.confirmPassword}
 					name="confirmPassword"
 					bind:value={confirmPassword}
-					on:input={validatePasswordsMatch}
-					on:blur={validatePasswordsMatch}
+					oninput={validatePasswordsMatch}
+					onblur={validatePasswordsMatch}
 					class="bg-bg-primary border-border pr-10 w-full rounded-md border p-2.5 
 						{(!confirmPasswordValid || !passwordsMatch || form?.errors?.confirmPassword) 
 							? 'border-red focus:border-red focus:ring-red' 

@@ -85,7 +85,7 @@ export function validateUsername(username: unknown): username is string {
 		typeof username === 'string' &&
 		username.length >= 3 &&
 		username.length <= 31 &&
-		/^[a-z0-9_-]+$/.test(username)
+		/^[A-Za-z0-9_-]+$/.test(username)
 	);
 }
 

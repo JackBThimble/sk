@@ -28,11 +28,11 @@ export const actions: Actions = {
 			return fail(400, { message: 'Invalid password (min 6, max 255 characters)' });
 		}
 
-		const results = await db.select().from(table.user).where(eq(table.user.username, username));
+		const existingUser = await db.query.user.findFirst({
+			where: (user, { eq }) => eq( user.username, username.toLowerCase())});
 
-		const existingUser = results.at(0);
 		if (!existingUser) {
-			return fail(400, { message: 'Incorrect username or password' });
+			return fail(400, { message: 'Incorrect username' });
 		}
 
 		const validPassword = await verify(existingUser.passwordHash, password, {
@@ -42,7 +42,7 @@ export const actions: Actions = {
 			parallelism: 1
 		});
 		if (!validPassword) {
-			return fail(400, { message: 'Incorrect username or password' });
+			return fail(400, { message: 'Incorrect password' });
 		}
 
 		const sessionToken = auth.generateSessionToken();

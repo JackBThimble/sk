@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { clickOutside } from '$lib/actions/clickOutside';
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
+	
 
 	let user = $props();
 
@@ -50,9 +52,16 @@
 				action="/logout"
 				use:enhance={() => {
 					closeMenu();
-					return ({ update }) => {
-						update();
-					};
+				    return async({ result }) => {
+						if (result.type === 'redirect') {
+							goto(result.location);
+						} else {
+							if (result.type === 'failure') {
+								console.error('Logout failed');
+							} 
+							window.location.href = '/';
+						}
+					}
 				}}
 			>
 				<button
