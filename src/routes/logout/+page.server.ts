@@ -16,7 +16,6 @@ export const actions: Actions = {
 			await auth.invalidateSession(event.locals.session.id);
 			auth.deleteSessionTokenCookie(event);
 			console.log('Logout successful, redirecting to home page');
-			return redirect(302, '/');
 		} catch (error) {
 			console.error('Error during logout: ', error);
 			return fail(500, {
@@ -24,5 +23,6 @@ export const actions: Actions = {
 				error: error instanceof Error ? error.message : String(error)
 			});
 		}
+		return redirect(302, '/');
 	}
 };

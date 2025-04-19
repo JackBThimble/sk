@@ -6,7 +6,7 @@ import * as table from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
 import { userSchema } from '$lib/server/zod-schemas';
 import { z } from 'zod';
-
+import { goto } from '$app/navigation';
 export const load: PageServerLoad = async (event) => {
 	if (event.locals.user) {
 		return redirect(302, '/');
@@ -78,7 +78,6 @@ export const actions: Actions = {
 				const sessionToken = auth.generateSessionToken();
 				const session = await auth.createSession(sessionToken, userId);
 				auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
-				
 			}
 			catch (e) {
 				console.error("Database error during registration.");
@@ -87,7 +86,6 @@ export const actions: Actions = {
 				    data: { username },
 				});
 			}
-			return redirect(302, '/');
 		}
 		catch (e) {
 			if (e instanceof z.ZodError) {
@@ -110,5 +108,6 @@ export const actions: Actions = {
 				data: { username: userData.username },
 			});
 		}
+		return redirect(302, '/profile');
 	}
 };
