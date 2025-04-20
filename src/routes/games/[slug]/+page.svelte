@@ -1,14 +1,9 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
 	import type { PageProps } from './$types';
 	import type { Action } from 'svelte/action';
-	import type { SvelteHTMLElements } from 'svelte/elements';
 
-	let { form, data }: PageProps = $props();
+	let { data }: PageProps = $props();
 
-	let gameContainer: HTMLDivElement | undefined = $state();
-
-	let canvas: HTMLCanvasElement | undefined = $state();
 	let gameInstance: any = $state(null);
 	let isLoading = $state(true);
 	let error: string | null = $state(null);
@@ -25,66 +20,79 @@
 		difficulty: 'medium'
 	});
 
-	onMount(async () => {
-		isLoading = true;
+	const initGame: Action<HTMLDivElement> = (node) => {
+		let gameCanvasEl: HTMLCanvasElement | null = null;
+		let instance: any = null;
 
-		try {
-			const gameModule = await import(`../../../games/${data.game.id}/index.ts`);
+		const initialize = async () => {
+			try {
+				const gameModule = await import(`../../../games/${data.game.id}/index.ts`);
 
-			if (gameContainer && canvas) {
-				console.log('Fucking game container is null...');
-				canvas = document.createElement('canvas');
-				canvas.width = gameContainer.clientWidth || window.innerWidth * 0.7;
-				canvas.height = Math.min(window.innerHeight * 0.7, gameContainer.clientHeight * 0.75);
-				canvas.id = 'game-canvas';
-				gameContainer.appendChild(canvas);
-				// init game
-				gameInstance = await gameModule.createGame(canvas.id, canvas.width, canvas.height);
+				gameCanvasEl = document.createElement('canvas');
+				gameCanvasEl.width = node.clientWidth;
+				gameCanvasEl.height = Math.min(window.innerHeight * 0.7, node.clientHeight * 0.75);
+				gameCanvasEl.id = 'game-canvas';
+				node.appendChild(gameCanvasEl);
+
+				instance = await gameModule.createGame(
+					gameCanvasEl.id,
+					gameCanvasEl.width,
+					gameCanvasEl.height
+				);
+				gameInstance = instance;
+
+				instance.on('scoreChange', (eventData: any) => {
+					score = eventData.score;
+				});
+
+				instance.on('gameOver', (eventData: any) => {
+					score = eventData.score;
+					highScore = eventData.highScore;
+				});
+
+				const loadedSettings = instance.getSettings();
+				settings = { ...settings, ...loadedSettings };
+
+				isLoading = false;
+				instance.start();
+			} catch (e) {
+				console.error('Failed to load game:', e);
+				error = 'Failed to load game. Please try again later.';
+				isLoading = false;
 			}
+		};
 
-			// set up event listeners
-			gameInstance.on('scoreChange', (eventData: any) => {
-				score = eventData.score;
-			});
+		const handleResize = () => {
+			if (!gameCanvasEl || !instance) return;
 
-			gameInstance.on('gameOver', (eventData: any) => {
-				score = eventData.score;
-				highScore = eventData.highScore;
-			});
+			const newWidth = node.clientWidth;
+			const newHeight = Math.min(window.innerHeight * 0.7, node.clientHeight * 0.75);
 
-			// load game settings
-			const loadedSettings = gameInstance.getSettings();
-			settings = { ...settings, ...loadedSettings };
+			gameCanvasEl.width = newWidth;
+			gameCanvasEl.height = newHeight;
 
-			isLoading = false;
+			instance.resize(newWidth, newHeight);
+		};
 
-			window.addEventListener('resize', handleResize);
+		// Add resize listener
+		window.addEventListener('resize', handleResize);
 
-			gameInstance.start();
-		} catch (e) {
-			console.error('Failed to load game:', e);
-			error = 'Failed to load game. Please try again later.';
-			isLoading = false;
-		}
-	});
+		// start loading when the action is initialized
+		isLoading = true;
+		initialize();
 
-	onDestroy(() => {
-		if (gameInstance) {
-			gameInstance.destroy();
-		}
-	});
-
-	function handleResize() {
-		if (!canvas || !gameInstance || !gameContainer) return;
-
-		const newWidth = gameContainer.clientWidth;
-		const newHeight = Math.min(window.innerHeight * 0.7, gameContainer.clientHeight * 0.75);
-
-		canvas.width = newWidth;
-		canvas.height = newHeight;
-
-		gameInstance.resize(newWidth, newHeight);
-	}
+		return {
+			destroy() {
+				if (instance) {
+					instance.destroy();
+				}
+				if (gameCanvasEl && gameCanvasEl.parentNode) {
+					gameCanvasEl.parentNode.removeChild(gameCanvasEl);
+				}
+				window.removeEventListener('resize', handleResize);
+			}
+		};
+	};
 
 	function togglePause() {
 		if (gameInstance) {
@@ -168,7 +176,6 @@
 		: { keyboard: [], touch: [] };
 </script>
 
-<svelte:window onresize={handleResize} />
 <div class="mb-12">
 	<div class="mb-8">
 		<div class="flex items-center justify-between">
@@ -189,15 +196,21 @@
 
 			{#if data.game.tags}
 				{#each JSON.parse(data.game.tags) as tag}
-					<span class="bg-bg-tertiary border-border rounded-full border px-3 py-1 text-sm">
+					<span
+						class="bg-bg-tertiary border-border rounded-full border px-3 py-1 text-sm"
+					>
 						{tag}
 					</span>
 				{/each}
 			{/if}
 			<!-- Controls Modal -->
 			{#if showControlsModal}
-				<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
-					<div class="bg-bg-primary border-border w-full max-w-md rounded-lg border p-6 shadow-lg">
+				<div
+					class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
+				>
+					<div
+						class="bg-bg-primary border-border w-full max-w-md rounded-lg border p-6 shadow-lg"
+					>
 						<div class="mb-4 flex items-center justify-between">
 							<h2 class="text-xl font-bold">Game Controls</h2>
 							<button
@@ -323,56 +336,18 @@
 				</div>
 			{:else}
 				<div
-					bind:this={gameContainer}
+					use:initGame
 					id="game-container"
 					class="bg-bg-secondary border-border relative rounded-lg border"
 				>
-					<canvas bind:this={canvas}>
-						<!--- Game controls overlay -->
-						<div class="absolute top-2 right-2 z-10 flex gap-2">
-							<button
-								class="bg-bg-tertiary hover:bg-bg-primary rounded-full p-2 transition-colors"
-								onclick={togglePause}
-								title={isPaused ? 'Resume Game' : 'Pause Game'}
-							>
-								{#if isPaused}
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										class="h-5 w-5"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-										/>
-									</svg>
-								{:else}
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										class="h-5 w-5"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
-										/>
-									</svg>
-								{/if}
-							</button>
-							<button
-								class="bg-bg-tertiary hover:bg-bg-primary rounded-full p-2 transition-colors"
-								onclick={openSettings}
-								title="Game Settings"
-								aria-label="settings"
-							>
+					<!--- Game controls overlay -->
+					<div class="absolute top-2 right-2 z-10 flex gap-2">
+						<button
+							class="bg-bg-tertiary hover:bg-bg-primary rounded-full p-2 transition-colors"
+							onclick={togglePause}
+							title={isPaused ? 'Resume Game' : 'Pause Game'}
+						>
+							{#if isPaused}
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									class="h-5 w-5"
@@ -384,22 +359,10 @@
 										stroke-linecap="round"
 										stroke-linejoin="round"
 										stroke-width="2"
-										d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-									/>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+										d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
 									/>
 								</svg>
-							</button>
-							<button
-								class="bg-bg-tertiary hover:bg-bg-primary rounded-full p-2 transition-colors"
-								onclick={openControls}
-								title="Game Controls"
-								aria-label="controls"
-							>
+							{:else}
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									class="h-5 w-5"
@@ -411,26 +374,74 @@
 										stroke-linecap="round"
 										stroke-linejoin="round"
 										stroke-width="2"
-										d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
+										d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
 									/>
 								</svg>
-							</button>
-						</div>
+							{/if}
+						</button>
+						<button
+							class="bg-bg-tertiary hover:bg-bg-primary rounded-full p-2 transition-colors"
+							onclick={openSettings}
+							title="Game Settings"
+							aria-label="settings"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-5 w-5"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+								/>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+								/>
+							</svg>
+						</button>
+						<button
+							class="bg-bg-tertiary hover:bg-bg-primary rounded-full p-2 transition-colors"
+							onclick={openControls}
+							title="Game Controls"
+							aria-label="controls"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-5 w-5"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
+								/>
+							</svg>
+						</button>
+					</div>
 
-						<!-- Score Display -->
-						<div class="absolute bottom-2 left-2 z-10 text-sm">
-							<div class="flex gap-4">
-								<div>
-									<span class="text-text-secondary">Score:</span>
-									<span class="text-text-primary font-bold">{score}</span>
-								</div>
-								<div>
-									<span class="text-text-secondary">High Score:</span>
-									<span class="text-text-primary font-bold">{highScore}</span>
-								</div>
+					<!-- Score Display -->
+					<div class="absolute bottom-2 left-2 z-10 text-sm">
+						<div class="flex gap-4">
+							<div>
+								<span class="text-text-secondary">Score:</span>
+								<span class="text-text-primary font-bold">{score}</span>
+							</div>
+							<div>
+								<span class="text-text-secondary">High Score:</span>
+								<span class="text-text-primary font-bold">{highScore}</span>
 							</div>
 						</div>
-					</canvas>
+					</div>
 				</div>
 			{/if}
 		</div>
@@ -587,7 +598,9 @@
 			</div>
 
 			<div class="mt-6 flex justify-end space-x-3">
-				<button class="btn-secondary" onclick={() => (showSettingsModal = false)}> Cancel </button>
+				<button class="btn-secondary" onclick={() => (showSettingsModal = false)}>
+					Cancel
+				</button>
 				<button class="btn-primary" onclick={saveSettings}> Save Settings </button>
 			</div>
 		</div>
