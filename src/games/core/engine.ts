@@ -1,4 +1,5 @@
 import { time } from 'drizzle-orm/singlestore-core';
+import { GameState } from './types';
 
 export class GameEngine {
 	/** Canvas element to render the game on */
@@ -14,7 +15,7 @@ export class GameEngine {
 	/** Time of the last frame */
 	private lastFrameTime = 0;
 	/** Game state (playing, paused, game over, etc. ) */
-	protected gameState: 'init' | 'playing' | 'paused' | 'gameOver' = 'init';
+	protected gameState: GameState = GameState.INIT;
 	/** current score */
 	protected score = 0;
 	/** high score */
@@ -59,7 +60,7 @@ export class GameEngine {
 		if (this.isRunning) return;
 
 		this.isRunning = true;
-		this.gameState = 'playing';
+		this.gameState = GameState.PLAYING;
 		this.lastFrameTime = performance.now();
 		this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
 		this.emit('gameStart');
@@ -69,9 +70,9 @@ export class GameEngine {
 	 * Pause the game
 	 */
 	pause(): void {
-		if (this.gameState !== 'playing') return;
+		if (this.gameState !== GameState.PLAYING) return;
 
-		this.gameState = 'paused';
+		this.gameState = GameState.PAUSE;
 		this.emit('gamePause');
 	}
 
@@ -79,9 +80,9 @@ export class GameEngine {
 	 * Resume the game
 	 */
 	resume(): void {
-		if (this.gameState !== 'paused') return;
+		if (this.gameState !== GameState.PAUSE) return;
 
-		this.gameState = 'playing';
+		this.gameState = GameState.PAUSE;
 		this.lastFrameTime = performance.now();
 		this.emit('gameResume');
 	}
@@ -105,7 +106,7 @@ export class GameEngine {
 	 */
 	reset(): void {
 		this.score = 0;
-		this.gameState = 'init';
+		this.gameState = GameState.INIT;
 		this.emit('gameReset');
 	}
 
@@ -113,7 +114,7 @@ export class GameEngine {
 	 * End the current game
 	 */
 	gameOver(): void {
-		this.gameState = 'gameOver';
+		this.gameState = GameState.GAME_OVER;
 
 		if (this.score > this.highScore) {
 			this.highScore = this.score;
@@ -134,7 +135,7 @@ export class GameEngine {
 		if (deltaTime >= this.frameRate) {
 			this.lastFrameTime = timestamp;
 
-			if (this.gameState === 'playing') {
+			if (this.gameState === GameState.PLAYING) {
 				// clear the canvas
 				this.ctx.clearRect(0, 0, this.width, this.height);
 				// update the game state
