@@ -9,6 +9,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		const games = await db.select().from(schema.game);
 		console.log(`Found ${games.length} games`);
 
+		let session = locals.session;
 		let userScores: schema.Score[] = [];
 		if (locals.user) {
 			userScores = await db
@@ -19,13 +20,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 		}
 		return {
 			games,
-			userScores
+			userScores,
+			session
 		};
 	} catch (error) {
 		console.error('Error loading games: ', error);
 		return {
 			games: [],
-			userScores: []
+			userScores: [],
+			session: null
 		};
 	}
 };

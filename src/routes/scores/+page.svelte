@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 
-	let data = $props();
+	let data: PageData = $props();
 	let selectedGame = $state(data.games[0]?.id || '');
 
 	// Filtered scores for the selected game
@@ -13,7 +13,7 @@
 	);
 
 	// Format date for display
-	function formatDate(dateString: string): string {
+	function formatDate(dateString: Date): string {
 		const date = new Date(dateString);
 		return new Intl.DateTimeFormat('en-US', {
 			year: 'numeric',
@@ -130,7 +130,9 @@
 						</thead>
 						<tbody>
 							{#each data.userBestScores as userScore}
-								{@const game = data.games.find((g: any) => g.id === userScore.gameId)}
+								{@const game = data.games.find(
+									(g: any) => g.id === userScore.gameId
+								)}
 								<tr class="border-border hover:bg-bg-tertiary border-b">
 									<td class="px-4 py-3">
 										<a

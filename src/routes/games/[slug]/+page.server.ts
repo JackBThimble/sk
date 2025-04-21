@@ -33,7 +33,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		});
 
 		let userStats = null;
-		if (locals.user !== null) {
+		if (locals.user) {
 			const userBestScore = await db.query.score.findFirst({
 				where: (score, { and, eq }) =>
 					and(eq(score.gameId, slug), eq(score.userId, locals.user.id)),
@@ -41,7 +41,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			});
 
 			const userScores = await db.query.score.findMany({
-				where: (score, { and, eq }) => and(eq(score.gameId, slug), eq(score.userId, locals.user.id))
+				where: (score, { and, eq }) =>
+					and(eq(score.gameId, slug), eq(score.userId, locals.user.id))
 			});
 
 			let userRank = null;

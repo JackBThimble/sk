@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
 	import type { Action } from 'svelte/action';
+	import { dev } from '$app/environment';
+	import Inspect from 'svelte-inspect-value';
 
 	let { data }: PageProps = $props();
 
@@ -106,6 +108,7 @@
 		}
 	}
 
+	/* This is not needed at the moment, but may be in the future
 	function restartGame() {
 		if (!gameInstance) return;
 
@@ -113,6 +116,7 @@
 		gameInstance.start();
 		isPaused = false;
 	}
+    */
 
 	function openSettings() {
 		showSettingsModal = true;
@@ -144,6 +148,7 @@
 		}
 	}
 
+	/* This is not needed at the moment, but may be in the future
 	function closeModals() {
 		showSettingsModal = false;
 		showControlsModal = false;
@@ -153,6 +158,7 @@
 			isPaused = false;
 		}
 	}
+    */
 
 	function getDifficultyColor(difficulty: string): string {
 		switch (difficulty.toLowerCase()) {
@@ -176,6 +182,9 @@
 		: { keyboard: [], touch: [] };
 </script>
 
+{#if dev}
+	<Inspect.Values {data} {gameInstance} {isLoading} {highScore} {isPaused} />
+{/if}
 <div class="mb-12">
 	<div class="mb-8">
 		<div class="flex items-center justify-between">

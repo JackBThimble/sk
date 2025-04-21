@@ -40,7 +40,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 };
 
-export const GET: RequestHandler = async ({ url, locals }) => {
+export const GET: RequestHandler = async ({ url }) => {
 	try {
 		const gameId = url.searchParams.get('gameId');
 		const limit = parseInt(url.searchParams.get('limit') || '10', 10);

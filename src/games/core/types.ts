@@ -209,4 +209,3 @@ export interface Level {
 	difficulty: Difficulty;
 	data: any;
 }
-

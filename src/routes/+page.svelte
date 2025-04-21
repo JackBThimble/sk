@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
 	import GameCard from '$lib/components/GameCard.svelte';
 
-	let data = $props();
+	let data: PageData = $props();
 </script>
 
 <div class="space-y-12">
@@ -13,8 +12,8 @@
 			<h1 class="mb-4 text-4xl font-bold sm:text-5xl">Welcome to SK Game Hub</h1>
 
 			<p class="text-text-secondary mb-8 text-lg">
-				Your one-stop platform for classic and modern browser games. Play, compete, and track your
-				high scores across multiple games.
+				Your one-stop platform for classic and modern browser games. Play, compete, and
+				track your high scores across multiple games.
 			</p>
 
 			<div class="flex flex-col justify-center gap-4 sm:flex-row">
@@ -32,14 +31,20 @@
 	<section class="mb-12">
 		<div class="mb-6 flex items-center justify-between">
 			<h2 class="text-2xl font-bold">Featured Games</h2>
-			<a href="/games" class="text-blue hover:text-light-blue transition-colors hover:underline">
+			<a
+				href="/games"
+				class="text-blue hover:text-light-blue transition-colors hover:underline"
+			>
 				View All Games
 			</a>
 		</div>
 
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 			{#each data.featuredGames as game}
-				<GameCard {game} userScore={data.userScores?.find((score) => score.gameId === game.id)} />
+				<GameCard
+					{game}
+					userScore={data.userScores?.find((score) => score.gameId === game.id)}
+				/>
 			{/each}
 		</div>
 	</section>
@@ -49,7 +54,10 @@
 		<section class="mb-12">
 			<div class="mb-6 flex items-center justify-between">
 				<h2 class="text-2xl font-bold">Recent High Scores</h2>
-				<a href="/scores" class="text-blue hover:text-light-blue transition-colors hover:underline">
+				<a
+					href="/scores"
+					class="text-blue hover:text-light-blue transition-colors hover:underline"
+				>
 					View All Scores
 				</a>
 			</div>
@@ -83,7 +91,10 @@
 										</span>
 									</div>
 								</td><td class="px-4 py-3">
-									<a href="/games/{score.gameId}" class="text-blue hover:underline">
+									<a
+										href="/games/{score.gameId}"
+										class="text-blue hover:underline"
+									>
 										{game?.title || 'Unknown Game'}
 									</a>
 								</td>
@@ -106,8 +117,8 @@
 		<section class="bg-bg-secondary border-border rounded-lg border p-8 text-center">
 			<h2 class="mb-4 text-2xl font-bold">Create an Account to Save Your Progress</h2>
 			<p class="text-text-secondary mx-auto mb-8 max-w-2xl">
-				Sign up today to track your high scores, compete with other players, and unlock additional
-				features in your favorite games.
+				Sign up today to track your high scores, compete with other players, and unlock
+				additional features in your favorite games.
 			</p>
 			<div class="flex justify-center gap-4">
 				<a href="/register" class="btn-primary px-6 py-2">Register Now</a>

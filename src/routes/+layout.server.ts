@@ -1,10 +1,13 @@
 import type { LayoutServerLoad } from './$types';
 import * as auth from '$lib/server/auth';
 
-
 export const load: LayoutServerLoad = async ({ locals }) => {
-	const session = await auth.validateSessionToken();
+	let session;
+	if (locals.session) {
+		session = await auth.validateSessionToken(locals.session.id);
+	}
 	return {
-		user: locals.user
+		user: locals.user,
+		session: session
 	};
 };

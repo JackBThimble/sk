@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import type { GameCategory } from '../../games/core/types';
 	import GameCard from '$lib/components/GameCard.svelte';
 	import type { Game } from '$lib/server/db/schema';
 	import type { PageProps } from './$types';
+	import { dev } from '$app/environment';
+	import Inspect from 'svelte-inspect-value';
 
 	let { data }: PageProps = $props();
 
@@ -29,7 +29,7 @@
 
 			if (
 				selectedDifficulty !== 'all' &&
-				game.difficulty.toLowerCase() !== selectedCategory.toLowerCase()
+				game.difficulty.toLowerCase() !== selectedDifficulty.toLowerCase()
 			)
 				return false;
 
@@ -41,26 +41,21 @@
 
 	let difficulties: any[] = $derived([
 		'all',
-		...new Set(data.games.map((game: any) => game.difficulty))
+		...new Set(data.games.map((game) => game.difficulty))
 	]);
-
-	function getDifficultyColor(difficulty: string): string {
-		switch (difficulty.toLowerCase()) {
-			case 'easy':
-				return 'text-green';
-			case 'medium':
-				return 'text-light-blue';
-			case 'hard':
-				return 'text-orange';
-			case 'expert':
-				return 'text-deep-orange';
-			case 'master':
-				return 'text-deep-red';
-			default:
-				return '';
-		}
-	}
 </script>
+
+{#if dev}
+	<Inspect.Values
+		{categories}
+		{difficulties}
+		{data}
+		{searchQuery}
+		{filteredGames}
+		{selectedDifficulty}
+		{selectedCategory}
+	/>
+{/if}
 
 <div class="mb-8">
 	<h1 class="mb-6 text-4xl font-bold">Game Library</h1>
@@ -117,7 +112,7 @@
 				{#each difficulties as difficulty}
 					<option value={difficulty}>
 						{difficulty === 'all'
-							? 'AllDifficulties'
+							? 'All Difficulties'
 							: difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
 					</option>
 				{/each}
@@ -144,7 +139,10 @@
 	{:else}
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 			{#each filteredGames as game}
-				<GameCard {game} userScore={data.userScores.find((score) => score.gameId === game.id)} />
+				<GameCard
+					{game}
+					userScore={data.userScores.find((score) => score.gameId === game.id)}
+				/>
 			{/each}
 		</div>
 	{/if}

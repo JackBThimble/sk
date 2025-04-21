@@ -3,7 +3,7 @@ import * as auth from '$lib/server/auth.js';
 
 const extractOrigin = (request: Request) => {
 	const origin = request.headers.get('origin');
-	return origin; 
+	return origin;
 };
 export const handle: Handle = async ({ event, resolve }) => {
 	const sessionToken = event.cookies.get(auth.sessionCookieName);
@@ -23,7 +23,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.session = session;
 
 	return resolve(event);
-		
 };
 
 const handleAuth: Handle = async ({ event, resolve }) => {
@@ -47,4 +46,3 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	event.locals.session = session;
 	return resolve(event);
 };
-

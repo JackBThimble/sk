@@ -2,10 +2,14 @@
 	import '../app.css';
 	import Header from '$lib/components/Header.svelte';
 	import { onMount } from 'svelte';
-	import type { PageData } from './$types';
+	import type * as schema from '$lib/server/db/schema';
 
-	export let data: PageData;
-	$: user = data.user;
+	//export let data: PageData;
+	let {
+		user,
+		session,
+		children
+	}: { user: schema.User; session: schema.Session; children: Function } = $props();
 
 	onMount(() => {
 		const savedTheme = localStorage.getItem('theme');
@@ -22,7 +26,7 @@
 	<Header {user} />
 
 	<main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
-		<slot />
+		{@render children()}
 	</main>
 
 	<footer class="border-border mt-auto border-t px-6 py-6">

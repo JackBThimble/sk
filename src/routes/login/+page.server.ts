@@ -1,9 +1,7 @@
-import { hash, verify } from '@node-rs/argon2';
+import { verify } from '@node-rs/argon2';
 import { fail, redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
 import * as auth from '$lib/server/auth';
 import { db } from '$lib/server/db';
-import * as table from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
@@ -29,7 +27,8 @@ export const actions: Actions = {
 		}
 
 		const existingUser = await db.query.user.findFirst({
-			where: (user, { eq }) => eq( user.username, username.toLowerCase())});
+			where: (user, { eq }) => eq(user.username, username)
+		});
 
 		if (!existingUser) {
 			return fail(400, { message: 'Incorrect username' });

@@ -17,7 +17,8 @@
 		userScore?: { score: number; rank?: number } | null;
 	}>();
 
-	let parsedTags = $derived(game.tags ? JSON.parse(game.tags) : []);
+	let imageError = $state(false);
+	//	let parsedTags = $derived(game.tags ? JSON.parse(game.tags) : []);
 
 	// Function to get the difficulty color class
 	function getDifficultyColor(difficulty: string): string {
@@ -36,28 +37,27 @@
 				return '';
 		}
 	}
+
+	function handleImageError() {
+		imageError = true;
+	}
 </script>
 
 <a
 	href={`/games/${game.id}`}
 	class="card group hover:bg-bg-tertiary transform transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
 >
-	<div
-		class="game-thumbnail bg-bg-tertiary relative mb-4 aspect-video overflow-hidden rounded-t-lg"
-	>
-		{#if game.thumbnail}
+	<div class="bg-bg-tertiary relative mb-4 aspect-square overflow-hidden rounded-t-lg">
+		{#if game.thumbnail && !imageError}
 			{@const thumbnailPath = game.thumbnail.startsWith('/')
 				? game.thumbnail
 				: `/game-assets/${game.id}/assets/img/thumbnail.png`}
 			<img
 				src={thumbnailPath}
 				alt={game.title}
-				class="h-full w-full transform object-cover transition-transform duration-300 group-hover:scale-105"
+				class="h-full w-full transform transition-transform duration-300 group-hover:scale-105"
 				loading="lazy"
-				onerror={() => {
-					this.onerror = null;
-					this.src = '/placeholder-game.png';
-				}}
+				onerror={handleImageError}
 			/>
 		{:else}
 			<div class="flex h-full items-center justify-center">
@@ -72,13 +72,14 @@
 						stroke-linecap="round"
 						stroke-linejoin="round"
 						stroke-width="2"
-						d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+						d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
 					/>
+					<circle cx="12" cy="12" r="3" stroke-width="2" />
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
 						stroke-width="2"
-						d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						d="M9 9l6 6m0-6l-6 6"
 					/>
 				</svg>
 			</div>

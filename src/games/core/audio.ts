@@ -9,7 +9,6 @@ export type AudioAsset = {
 	autoplay?: boolean;
 	preload?: boolean;
 	muted?: boolean;
-	playbackRate?: number;
 	currentTime?: number;
 	duration?: number;
 	paused?: boolean;
@@ -83,7 +82,7 @@ export class AudioManager {
 	}
 
 	/** Play a sound effect */
-	playSound(id: string, volume = 1.0, loop = false, playbackRate = 1.0) {
+	playSound(id: string, volume = 1.0, loop = false) {
 		if (!this.context || this.muted) return;
 		const buffer = this.sounds.get(id);
 		if (!buffer) {
@@ -307,4 +306,3 @@ export class AudioManager {
 		}
 	}
 }
-
