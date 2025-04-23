@@ -1,14 +1,17 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
-	import type { Action } from 'svelte/action';
 	import { dev } from '$app/environment';
 	import Inspect from 'svelte-inspect-value';
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
+	import type { IGame } from '../../../games/core/index';
+	import { GameState } from '../../../games/core/types';
 
 	let { data }: PageProps = $props();
 
+	let gameStarted = $state(false);
 	let gameInstance: any = $state(null);
-	let isLoading = $state(true);
-	let error: string | null = $state(null);
+	let canvas: HTMLCanvasElement | null = $state(null);
 	let score = $state(0);
 	let highScore = $state(0);
 	let isPaused = $state(false);
@@ -22,79 +25,85 @@
 		difficulty: 'medium'
 	});
 
-	const initGame: Action<HTMLDivElement> = (node) => {
-		let gameCanvasEl: HTMLCanvasElement | null = null;
-		let instance: any = null;
+	// Promise to load the game
+	let gamePromise: Promise<any> | null = $state(null);
 
-		const initialize = async () => {
-			try {
-				const gameModule = await import(`../../../games/${data.game.id}/index.ts`);
-
-				gameCanvasEl = document.createElement('canvas');
-				gameCanvasEl.width = node.clientWidth;
-				gameCanvasEl.height = Math.min(window.innerHeight * 0.7, node.clientHeight * 0.75);
-				gameCanvasEl.id = 'game-canvas';
-				node.appendChild(gameCanvasEl);
-
-				instance = await gameModule.createGame(
-					gameCanvasEl.id,
-					gameCanvasEl.width,
-					gameCanvasEl.height
-				);
-				gameInstance = instance;
-
-				instance.on('scoreChange', (eventData: any) => {
-					score = eventData.score;
-				});
-
-				instance.on('gameOver', (eventData: any) => {
-					score = eventData.score;
-					highScore = eventData.highScore;
-				});
-
-				const loadedSettings = instance.getSettings();
-				settings = { ...settings, ...loadedSettings };
-
-				isLoading = false;
-				instance.start();
-			} catch (e) {
-				console.error('Failed to load game:', e);
-				error = 'Failed to load game. Please try again later.';
-				isLoading = false;
+	onMount(() => {
+		if (canvas) {
+			canvas.tabIndex = 1;
+			// Prevent default behavior for arrow keys at the document level
+			gamePromise = loadGame();
+			canvas.addEventListener('keydown', (event) => {
+				event.preventDefault();
+				if (event.code === ' ' || event.code === 'Space') {
+					if (gameInstance.gameState === 'playing') {
+						togglePause();
+					} else if (gameInstance.gameState === 'pause') {
+						togglePause();
+					} else {
+						gameInstance.start();
+					}
+				}
+			});
+			window.addEventListener('resize', handleResize);
+		}
+		return () => {
+			window.removeEventListener('resize', handleResize);
+			if (gameInstance) {
+				gameInstance.destroy?.();
 			}
 		};
+	});
 
-		const handleResize = () => {
-			if (!gameCanvasEl || !instance) return;
-
-			const newWidth = node.clientWidth;
-			const newHeight = Math.min(window.innerHeight * 0.7, node.clientHeight * 0.75);
-
-			gameCanvasEl.width = newWidth;
-			gameCanvasEl.height = newHeight;
-
-			instance.resize(newWidth, newHeight);
-		};
-
-		// Add resize listener
-		window.addEventListener('resize', handleResize);
-
-		// start loading when the action is initialized
-		isLoading = true;
-		initialize();
-
-		return {
-			destroy() {
-				if (instance) {
-					instance.destroy();
-				}
-				if (gameCanvasEl && gameCanvasEl.parentNode) {
-					gameCanvasEl.parentNode.removeChild(gameCanvasEl);
-				}
-				window.removeEventListener('resize', handleResize);
+	async function loadGame() {
+		try {
+			const gameModule = await import(`./../../../games/${data.game.id}/index.ts`);
+			if (!gameModule) {
+				throw new Error('Game module not found');
 			}
-		};
-	};
+			if (!canvas) {
+				throw new Error('Canvas element not found');
+			}
+			const parent = canvas.parentElement;
+			if (!parent) {
+				throw new Error('Unable to access canvas parent element');
+			}
+			let { width, height } = parent.getBoundingClientRect();
+			canvas!.width = width;
+			if (browser) {
+				canvas!.height = Math.min(window.innerHeight * 0.7, height * 0.75);
+			}
+
+			const instance = await gameModule.createGame(canvas.id, canvas?.width, canvas?.height);
+			instance.on('scoreChange', (eventData: any) => {
+				score = eventData.score;
+			});
+			instance.on('stateChange', (state: any) => {
+				isPaused = state === 'pause';
+			});
+			instance.on('gameOver', (eventData: any) => {
+				score = eventData.score;
+				highScore = eventData.highScore;
+			});
+			const loadedSettings = instance.getSettings();
+			settings = { ...settings, ...loadedSettings };
+			canvas.focus();
+			gameInstance = instance;
+			return instance;
+		} catch (e) {
+			console.error('Error loading game', e);
+			throw e;
+		}
+	}
+
+	function handleResize() {
+		if (!canvas) return;
+		const parent = canvas.parentElement;
+		if (!parent) return;
+		let { width, height } = parent.getBoundingClientRect();
+		canvas.width = width;
+		canvas.height = Math.min(window.innerHeight * 0.8, height * 0.95);
+	}
 
 	function togglePause() {
 		if (gameInstance) {
@@ -108,15 +117,13 @@
 		}
 	}
 
-	/* This is not needed at the moment, but may be in the future
-	function restartGame() {
+	function resetGame() {
 		if (!gameInstance) return;
 
 		gameInstance.reset();
 		gameInstance.start();
 		isPaused = false;
 	}
-    */
 
 	function openSettings() {
 		showSettingsModal = true;
@@ -145,6 +152,17 @@
 		if (gameInstance && !isPaused) {
 			gameInstance.pause();
 			isPaused = true;
+		}
+	}
+
+	function startGame() {
+		if (gameInstance && !gameStarted) {
+			if (gameInstance.audio) {
+				gameInstance.audio.resume();
+			}
+
+			gameInstance.start();
+			gameStarted = true;
 		}
 	}
 
@@ -183,7 +201,15 @@
 </script>
 
 {#if dev}
-	<Inspect.Values {data} {gameInstance} {isLoading} {highScore} {isPaused} />
+	<Inspect.Values
+		{data}
+		{canvas}
+		{gameStarted}
+		{gameInstance}
+		{gamePromise}
+		{highScore}
+		{isPaused}
+	/>
 {/if}
 <div class="mb-12">
 	<div class="mb-8">
@@ -290,169 +316,189 @@
 
 	<div class="flex flex-col gap-6 lg:flex-row">
 		<div class="flex-1">
-			{#if isLoading}
-				<div
-					class="bg-bg-secondary border-border flex h-96 items-center justify-center rounded-lg border"
-				>
-					<div class="text-center">
-						<svg
-							class="text-blue mx-auto h-12 w-12 animate-spin"
-							xmlns="http://www.w3.org/2000/svg"
-							fill="none"
-							viewBox="0 0 24 24"
-						>
-							<circle
-								class="opacity-25"
-								cx="12"
-								cy="12"
-								r="10"
-								stroke="currentColor"
-								stroke-width="4"
-							></circle>
-							<path
-								class="opacity-75"
-								fill="currentColor"
-								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-							></path>
-						</svg>
-						<p class="text-text-secondary mt-4">Loading game...</p>
-					</div>
-				</div>
-			{:else if error}
-				<div
-					class="bg-bg-secondary border-border flex h-96 items-center justify-center rounded-lg border"
-				>
-					<div class="text-center">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="text-red mx-auto h-12 w-12"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-							/>
-						</svg>
-						<p class="text-red mt-4">{error}</p>
-						<button class="btn-secondary mt-4" onclick={() => window.location.reload()}>
-							Try Again
-						</button>
-					</div>
-				</div>
-			{:else}
-				<div
-					use:initGame
-					id="game-container"
-					class="bg-bg-secondary border-border relative rounded-lg border"
-				>
-					<!--- Game controls overlay -->
-					<div class="absolute top-2 right-2 z-10 flex gap-2">
-						<button
-							class="bg-bg-tertiary hover:bg-bg-primary rounded-full p-2 transition-colors"
-							onclick={togglePause}
-							title={isPaused ? 'Resume Game' : 'Pause Game'}
-						>
-							{#if isPaused}
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									class="h-5 w-5"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-									/>
-								</svg>
-							{:else}
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									class="h-5 w-5"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
-									/>
-								</svg>
-							{/if}
-						</button>
-						<button
-							class="bg-bg-tertiary hover:bg-bg-primary rounded-full p-2 transition-colors"
-							onclick={openSettings}
-							title="Game Settings"
-							aria-label="settings"
-						>
+			<div
+				id="game-container"
+				class="bg-bg-secondary border-border relative rounded-lg border"
+				style="min-height: 70vh;"
+			>
+				<canvas tabindex="1" class="my-auto" id="game-canvas" bind:this={canvas}></canvas>
+				{#await gamePromise}
+					<div class="bg-bg-secondary absolute inset-0 flex items-center justify-center">
+						<div class="text-center">
 							<svg
+								class="text-blue mx-auto h-12 w-12 animate-spin"
 								xmlns="http://www.w3.org/2000/svg"
-								class="h-5 w-5"
 								fill="none"
 								viewBox="0 0 24 24"
-								stroke="currentColor"
 							>
+								<circle
+									class="opacity-25"
+									cx="12"
+									cy="12"
+									r="10"
+									stroke="currentColor"
+									stroke-width="4"
+								></circle>
 								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-								/>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-								/>
+									class="opacity-75"
+									fill="currentColor"
+									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+								></path>
 							</svg>
-						</button>
-						<button
-							class="bg-bg-tertiary hover:bg-bg-primary rounded-full p-2 transition-colors"
-							onclick={openControls}
-							title="Game Controls"
-							aria-label="controls"
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="h-5 w-5"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
-								/>
-							</svg>
-						</button>
-					</div>
-
-					<!-- Score Display -->
-					<div class="absolute bottom-2 left-2 z-10 text-sm">
-						<div class="flex gap-4">
-							<div>
-								<span class="text-text-secondary">Score:</span>
-								<span class="text-text-primary font-bold">{score}</span>
-							</div>
-							<div>
-								<span class="text-text-secondary">High Score:</span>
-								<span class="text-text-primary font-bold">{highScore}</span>
-							</div>
+							<p class="text-text-secondary mt-4">Loading game...</p>
 						</div>
 					</div>
-				</div>
-			{/if}
+				{:then _}
+					{#if !gameStarted}
+						<!-- Show start button overlay-->
+						<div
+							class="bg-opacity-50 absolute inset-0 flex items-center justify-center bg-black"
+						>
+							<div class="text-center">
+								<h2 class="mb-4 text-2xl font-bold text-white">
+									{data.game.title}
+								</h2>
+								<button
+									class="btn-primary px-8 py-3 text-lg"
+									onclick={() => {
+										startGame();
+										canvas?.focus();
+									}}>Start Game</button
+								>
+							</div>
+						</div>
+					{:else}
+						<!--- Game controls overlay -->
+						<div class="absolute top-2 right-2 z-10 flex gap-2">
+							<button
+								class="bg-bg-tertiary hover:bg-bg-primary rounded-full p-2 transition-colors"
+								onclick={togglePause}
+								title={isPaused ? 'Resume Game' : 'Pause Game'}
+							>
+								{#if isPaused}
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-5 w-5"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+										/>
+									</svg>
+								{:else}
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-5 w-5"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
+										/>
+									</svg>
+								{/if}
+							</button>
+							<button
+								class="bg-bg-tertiary hover:bg-bg-primary rounded-full p-2 transition-colors"
+								onclick={openSettings}
+								title="Game Settings"
+								aria-label="settings"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-5 w-5"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+									/>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+									/>
+								</svg>
+							</button>
+							<button
+								class="bg-bg-tertiary hover:bg-bg-primary rounded-full p-2 transition-colors"
+								onclick={openControls}
+								title="Game Controls"
+								aria-label="controls"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-5 w-5"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
+									/>
+								</svg>
+							</button>
+						</div>
+
+						<!-- Score Display -->
+						<div class="absolute bottom-2 left-2 z-10 text-sm">
+							<div class="flex gap-4">
+								<div>
+									<span class="text-text-secondary">Score:</span>
+									<span class="text-text-primary font-bold">{score}</span>
+								</div>
+								<div>
+									<span class="text-text-secondary">High Score:</span>
+									<span class="text-text-primary font-bold">{highScore}</span>
+								</div>
+							</div>
+						</div>
+					{/if}
+				{:catch error}
+					<div class="bg-bg-secondary absolute inset-0 flex items-center justify-center">
+						<div class="text-center">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="text-red mx-auto h-12 w-12"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+								/>
+							</svg>
+							<p class="text-red mt-4">{error.message}</p>
+							<button
+								class="btn-secondary mt-4"
+								onclick={() => window.location.reload()}
+							>
+								Try Again
+							</button>
+						</div>
+					</div>
+				{/await}
+			</div>
 		</div>
 
 		<div class="w-full lg:w-72">

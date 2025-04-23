@@ -38,7 +38,7 @@
 			</div>
 
 			<div class="flex space-x-6">
-				<a href="#" class="text-text-secondary hover:text-blue transition-colors">
+				<a href="/" class="text-text-secondary hover:text-blue transition-colors">
 					<span class="sr-only">Twitter</span>
 					<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 						<path
@@ -47,7 +47,7 @@
 					</svg>
 				</a>
 
-				<a href="#" class="text-text-secondary hover:text-blue transition-colors">
+				<a href="/" class="text-text-secondary hover:text-blue transition-colors">
 					<span class="sr-only">GitHub</span>
 					<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 						<path
