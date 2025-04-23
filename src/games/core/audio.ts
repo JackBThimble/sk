@@ -50,12 +50,30 @@ export class AudioManager {
 		// Check for stored Audio preferences
 		this.loadAudioPreferences();
 	}
+	
+	/** Resume audio context after user interaction */
+	public resume(): void {
+		if (this.context && this.context.state === 'suspended') {
+			this.context.resume().catch(err => {
+				console.warn('Failed to resume AudioContext:', err);
+			});
+		}
+	}
 
 	/** Initialize by loading a set of sound assets */
 	async init(assets: AudioAsset[]): Promise<void> {
-		if (!this.context) return;
+		if (!this.context) {
+			console.warn('Web Audio API not supported, audio will be disabled');
+			return;
+		}
 
-		const loadPromises = assets.map(async (asset) => this.loadSound(asset.id, asset.url));
+		const loadPromises = assets.map(async (asset) => {
+			try {
+				await this.loadSound(asset.id, asset.url);
+			} catch (e) {
+				console.warn(`Failed to load sound ${asset.id}:`, e);
+			}
+		});
 		await Promise.all(loadPromises);
 	}
 
@@ -65,65 +83,85 @@ export class AudioManager {
 
 		try {
 			const response = await fetch(url);
+			if (!response.ok) {
+				throw new Error(`HTTP error! Status: ${response.status}`);
+			}
 			const arrayBuffer = await response.arrayBuffer();
 			const audioBuffer = await this.context.decodeAudioData(arrayBuffer);
 			this.sounds.set(id, audioBuffer);
 		} catch (e) {
-			console.error(`Failed to load sound ${id} from ${url}:`, e);
+			console.warn(`Failed to load sound ${id} from ${url}:`, e);
+			throw e;
 		}
 	}
 
 	/** Load a music track (uses HTML5 Audio for streaming) */
 	loadMusic(id: string, url: string, volume = 0.7, loop = true): void {
-		const audio = new Audio(url);
-		audio.volume = this.muted ? 0 : volume * this.masterVolume * this.musicVolume;
-		audio.loop = loop;
-		this.music.set(id, audio);
+		try {
+			const audio = new Audio();
+			audio.onerror = (e) => {
+				console.warn(`Error loading music ${id} from ${url}:`, e);
+			};
+			audio.src = url;
+			audio.volume = this.muted ? 0 : volume * this.masterVolume * this.musicVolume;
+			audio.loop = loop;
+			this.music.set(id, audio);
+		} catch (e) {
+			console.warn(`Failed to load music ${id} from ${url}:`, e);
+		}
 	}
 
 	/** Play a sound effect */
 	playSound(id: string, volume = 1.0, loop = false) {
-		if (!this.context || this.muted) return;
-		const buffer = this.sounds.get(id);
-		if (!buffer) {
-			console.warn(`Sound ${id} not found`);
-			return;
+		if (!this.context || this.muted || !this.sounds.has(id)) {
+			return null;
 		}
-
-		// Create and configure a new source
-		const source = this.context.createBufferSource();
-		source.buffer = buffer;
-		source.loop = loop;
-
-		// Create gain mode for volume control
-		const gainNode = this.context.createGain();
-		gainNode.gain.value = volume * this.masterVolume * this.sfxVolume;
-
-		// Connect source to gain node and gain node to destination
-		source.connect(gainNode);
-		gainNode.connect(this.context.destination);
-
-		// Start playback
-		source.start(0);
-
-		if (!this.activeSources.has(id)) {
-			this.activeSources.set(id, []);
-		}
-		this.activeSources.get(id)?.push(source);
-
-		// Cleanup up when playback completes
-		source.onended = () => {
-			const sources = this.activeSources.get(id);
-			if (sources) {
-				const index = sources.indexOf(source);
-				if (index !== -1) {
-					sources.splice(index, 1);
-				}
-				if (sources.length === 0) {
-					this.activeSources.delete(id);
-				}
+		
+		try {
+			const buffer = this.sounds.get(id);
+			if (!buffer) {
+				console.warn(`Sound ${id} not found`);
+				return null;
 			}
-		};
+
+			// Create and configure a new source
+			const source = this.context.createBufferSource();
+			source.buffer = buffer;
+			source.loop = loop;
+
+			// Create gain mode for volume control
+			const gainNode = this.context.createGain();
+			gainNode.gain.value = volume * this.masterVolume * this.sfxVolume;
+
+			// Connect source to gain node and gain node to destination
+			source.connect(gainNode);
+			gainNode.connect(this.context.destination);
+
+			// Start playback
+			source.start(0);
+
+			if (!this.activeSources.has(id)) {
+				this.activeSources.set(id, []);
+			}
+			this.activeSources.get(id)?.push(source);
+
+			// Cleanup up when playback completes
+			source.onended = () => {
+				const sources = this.activeSources.get(id);
+				if (sources) {
+					const index = sources.indexOf(source);
+					if (index !== -1) {
+						sources.splice(index, 1);
+					}
+					if (sources.length === 0) {
+						this.activeSources.delete(id);
+					}
+				}
+			};
+		} catch (e) {
+			console.warn(`Error playing sound ${id}:`, e);
+			return null;
+		}
 	}
 
 	/** Stop all instances of a sound */

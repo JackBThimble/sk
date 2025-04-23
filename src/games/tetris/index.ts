@@ -1,4 +1,4 @@
-import thumbnailUrl from './assets/img/tetris-thumbnail.svg';
+import thumbnailUrl from './assets/img/tetris-thumbnail.png';
 import { SnakeGame } from '../snake/game';
 import type { GameMetadata } from '../core/types';
 import { GameCategory, Difficulty } from '../core/types';

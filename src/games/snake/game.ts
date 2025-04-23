@@ -123,15 +123,15 @@ export class SnakeGame extends GameEngine implements IGame {
 	 */
 	async init(): Promise<void> {
 		// Load audio assets
+		try {
 		const audioAssets: AudioAsset[] = [
-			{ id: 'eat', url: 'assets/sounds/eat.mp3' },
-			{ id: 'die', url: 'assets/sounds/die.mp3' },
-			{ id: 'move', url: 'assets/sounds/move.mp3' }
+			{ id: 'eat', url: new URL('./assets/sounds/eat.mp3', import.meta.url).href  },
+			{ id: 'die', url: new URL('./assets/sounds/die.mp3', import.meta.url).href },
+			{ id: 'move', url: new URL('./assets/sounds/move.mp3', import.meta.url).href }
 		];
 
-		try {
 			await this.audio.init(audioAssets);
-			this.audio.loadMusic('background', 'assets/music/background.mp3', 0.5, true);
+			this.audio.loadMusic('background', new URL('./assets/music/background.mp3', import.meta.url).href, 0.5, true);
 		} catch (e) {
 			console.warn('Failed to load audio assets: ', e);
 		}
@@ -171,6 +171,15 @@ export class SnakeGame extends GameEngine implements IGame {
 		setupKeyHandler(['ArrowLeft', 'h', 'H', 'a', 'A'], (key) => {
 			if (this.direction !== Direction.RIGHT) {
 				this.nextDirection = Direction.LEFT;
+			}
+		});
+		setupKeyHandler([' ', 'Space'], (key) => {
+			if (this.gameState === GameState.PLAYING) {
+				this.pause();
+			} else if (this.gameState === GameState.PAUSE) {
+				this.resume();
+			} else if (this.gameState === GameState.GAME_OVER) {
+				this.reset();
 			}
 		});
 

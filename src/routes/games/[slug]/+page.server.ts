@@ -49,8 +49,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			if (userBestScore) {
 				const betterScores = await db.query.score.findMany({
 					where: (score, { and, eq, gt }) =>
-						and(eq(score.gameId, slug), gt(score.score, userBestScore.score)),
-					groupBy: [schema.score.userId]
+						and(eq(score.gameId, slug), gt(score.score, userBestScore.score))
 				});
 				userRank = betterScores.length + 1;
 			}
@@ -65,9 +64,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		return {
 			game,
 			highScores,
-			...(userStats || {})
+			...(userStats || {}),
 		};
-	} catch (error) {
+	} catch (error) {		
 		console.error('Error loading game:', error);
 		throw error;
 	}

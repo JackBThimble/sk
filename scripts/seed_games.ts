@@ -14,7 +14,7 @@ const games = [
 		title: 'Snake',
 		description:
 			"The classic snake game. Eat food to grow longer, but don't run into yourself or the walls!",
-		thumbnail: '/games/snake/thumbnail.png',
+		thumbnail: '/src/games/snake/snake-thumbnail.png',
 		category: 'arcade',
 		tags: JSON.stringify(['classic', 'arcade', 'single-player']),
 		difficulty: 'easy',
@@ -31,7 +31,7 @@ const games = [
 		title: 'Tetris',
 		description:
 			'Arrange falling blocks to create complete lines. How many rows can you clear before the stack reaches the top?',
-		thumbnail: '/games/tetris/thumbnail.png',
+		thumbnail: '/src/games/tetris/tetris-thumbnail.png',
 		category: 'puzzle',
 		tags: JSON.stringify(['classic', 'puzzle', 'single-player']),
 		difficulty: 'medium',
@@ -61,7 +61,7 @@ const games = [
 		title: 'Pong',
 		description:
 			'The classic two-player paddle game. Keep the ball from passing your paddle while trying to score on your opponent.',
-		thumbnail: '/games/pong/thumbnail.png',
+		thumbnail: '/src/games/pong/pong-thumbnail.png',
 		category: 'arcade',
 		tags: JSON.stringify(['classic', 'arcade', 'multiplayer']),
 		difficulty: 'easy',
@@ -82,7 +82,7 @@ const games = [
 		title: 'Breakout',
 		description:
 			"Break all the bricks with a ball and paddle. Don't let the ball fall below your paddle!",
-		thumbnail: '/games/breakout/thumbnail.png',
+		thumbnail: '/src/games/breakout/breakout-thumbnail.png',
 		category: 'arcade',
 		tags: JSON.stringify(['classic', 'arcade', 'single-player']),
 		difficulty: 'easy',
@@ -98,7 +98,7 @@ const games = [
 		id: 'chess',
 		title: 'Chess',
 		description: 'The classic strategy board game. Play against the computer or another player.',
-		thumbnail: '/games/chess/thumbnail.png',
+		thumbnail: '/src/games/chess/chess-thumbnail.png',
 		category: 'board',
 		tags: JSON.stringify(['classic', 'strategy', 'board', 'multiplayer']),
 		difficulty: 'hard',
@@ -124,7 +124,7 @@ const games = [
 		title: 'Flappy Bird',
 		description:
 			'Navigate a bird through a series of pipes without hitting them. How far can you go?',
-		thumbnail: '/games/flappy-bird/thumbnail.png',
+		thumbnail: '/src/games/flappy-bird/flappy-bird-thumbnail.png',
 		category: 'arcade',
 		tags: JSON.stringify(['arcade', 'casual', 'single-player']),
 		difficulty: 'medium',
